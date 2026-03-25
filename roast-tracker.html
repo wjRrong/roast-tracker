@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>烘豆紀錄</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; font-size: 16px; }
+.app { max-width: 480px; margin: 0 auto; padding: 12px; }
+
+.tabs { display: flex; gap: 4px; background: #e8e8e4; border-radius: 12px; padding: 4px; margin-bottom: 16px; }
+.tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; border-radius: 8px; cursor: pointer; color: #666; border: none; background: transparent; }
+.tab.active { background: #fff; color: #1a1a1a; font-weight: 500; border: 0.5px solid rgba(0,0,0,0.1); }
+.section { display: none; }
+.section.active { display: block; }
+
+.card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.card-title { font-size: 13px; font-weight: 500; color: #666; margin-bottom: 10px; }
+.field label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 8px 10px; font-size: 14px;
+  border: 0.5px solid rgba(0,0,0,0.15); border-radius: 8px;
+  background: #f5f5f0; color: #1a1a1a;
+  -webkit-appearance: none;
+}
+.field textarea { font-size: 13px; line-height: 1.5; resize: vertical; min-height: 52px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+
+.ms-header { display: grid; grid-template-columns: 116px 1fr 1fr; gap: 6px; margin-bottom: 5px; }
+.ms-header span { font-size: 11px; color: #888; text-align: center; }
+.ms-header span:first-child { text-align: left; }
+.milestone-row { display: grid; grid-template-columns: 116px 1fr 1fr; gap: 6px; align-items: center; margin-bottom: 6px; }
+.milestone-row .mlabel { font-size: 12px; color: #666; }
+.milestone-row input {
+  padding: 7px 6px; font-size: 13px;
+  border: 0.5px solid rgba(0,0,0,0.15); border-radius: 8px;
+  background: #f5f5f0; color: #1a1a1a; text-align: center; width: 100%;
+  -webkit-appearance: none;
+}
+.milestone-row input.auto-filled { color: #185FA5; font-weight: 500; background: #eef4fb; }
+.ms-solo { display: grid; grid-template-columns: 116px 1fr; gap: 6px; align-items: center; margin-bottom: 8px; }
+.ms-solo .mlabel { font-size: 12px; color: #666; }
+.ms-solo input {
+  padding: 7px 6px; font-size: 13px;
+  border: 0.5px solid rgba(0,0,0,0.15); border-radius: 8px;
+  background: #f5f5f0; color: #1a1a1a; text-align: center; width: 100%;
+  -webkit-appearance: none;
+}
+
+.event-btn {
+  padding: 12px 8px; text-align: center;
+  border: 0.5px solid rgba(0,0,0,0.12); border-radius: 8px;
+  cursor: pointer; font-size: 13px;
+  background: #f5f5f0; color: #1a1a1a;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.event-btn.marked { background: #eafaf3; border-color: #1D9E75; color: #0f6e56; }
+.event-btn .time-tag { font-size: 11px; display: block; margin-top: 2px; color: #888; }
+.event-btn.marked .time-tag { color: #0f6e56; }
+.event-btn.drop-btn {
+  grid-column: span 2;
+  background: #fdf0ee; border-color: #D85A30;
+  color: #993c1d; font-size: 15px; font-weight: 500; padding: 16px;
+}
+.event-btn.drop-btn.marked { background: #eafaf3; border-color: #1D9E75; color: #0f6e56; }
+.event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.log-header { display: grid; grid-template-columns: 36px 1fr 52px 44px 48px 1fr; gap: 5px; margin-bottom: 5px; }
+.log-header span { font-size: 11px; color: #888; text-align: center; }
+.log-header span:first-child { text-align: right; }
+.temp-row { display: grid; grid-template-columns: 36px 1fr 52px 44px 48px 1fr; gap: 5px; align-items: center; margin-bottom: 5px; }
+.temp-row .min-label { font-size: 13px; color: #888; text-align: right; padding-right: 2px; }
+.temp-row input {
+  padding: 6px 4px; font-size: 13px;
+  border: 0.5px solid rgba(0,0,0,0.12); border-radius: 8px;
+  background: #f5f5f0; color: #1a1a1a; text-align: center; width: 100%;
+  -webkit-appearance: none;
+}
+.temp-row input[readonly] { color: #888; }
+.add-temp-btn {
+  width: 100%; padding: 9px; font-size: 13px;
+  border: 0.5px dashed rgba(0,0,0,0.2); border-radius: 8px;
+  background: transparent; color: #888; cursor: pointer; margin-top: 4px;
+}
+
+.primary-btn {
+  width: 100%; padding: 13px; font-size: 15px; font-weight: 500;
+  border: none; border-radius: 12px; background: #3266ad; color: #fff;
+  cursor: pointer; margin-top: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.primary-btn:disabled { background: #e8e8e4; color: #aaa; cursor: not-allowed; }
+.confirm-btn { background: #1D9E75; }
+
+.banner { border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; }
+.banner-success { background: #eafaf3; color: #0f6e56; border: 0.5px solid #1D9E75; }
+
+.metric-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.metric-row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.metric { background: #f5f5f0; border-radius: 8px; padding: 9px 6px; text-align: center; }
+.metric .val { font-size: 16px; font-weight: 500; color: #1a1a1a; }
+.metric .lbl { font-size: 10px; color: #888; margin-top: 2px; }
+
+.chart-wrap { position: relative; width: 100%; height: 220px; margin-bottom: 4px; }
+.chart-wrap-sm { position: relative; width: 100%; height: 150px; margin-bottom: 4px; }
+
+.divider { height: 0.5px; background: rgba(0,0,0,0.1); margin: 10px 0; }
+.calc-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+.calc-label { color: #666; }
+.calc-val { font-weight: 500; color: #1a1a1a; }
+
+.step-indicator { display: flex; align-items: center; gap: 5px; margin-bottom: 14px; }
+.step-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #e8e8e4; border: 0.5px solid rgba(0,0,0,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 500; flex-shrink: 0; color: #888;
+}
+.step-dot.active { background: #3266ad; color: #fff; border-color: #3266ad; }
+.step-dot.done { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.step-line { flex: 1; height: 0.5px; background: rgba(0,0,0,0.1); }
+.step-lbl { font-size: 11px; color: #888; white-space: nowrap; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: #888; font-size: 13px; }
+.history-item { border: 0.5px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
+.history-item:active { background: #f5f5f0; }
+.batch-id-txt { font-size: 11px; color: #888; font-family: monospace; }
+.history-bean { font-size: 14px; font-weight: 500; margin: 2px 0; }
+.history-meta { font-size: 12px; color: #888; }
+
+.legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+.legend-line { width: 18px; height: 2px; border-radius: 1px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+    <div>
+      <div style="font-size:18px; font-weight:500; color:#1a1a1a;">烘豆紀錄</div>
+      <div style="font-size:12px; color:#888;" id="session-status">準備開始</div>
+    </div>
+    <div id="timer-display" style="font-size:24px; font-weight:500; font-family:monospace; color:#1a1a1a; letter-spacing:1px;">00:00</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('record')">紀錄</button>
+    <button class="tab" onclick="switchTab('chart')">曲線</button>
+    <button class="tab" onclick="switchTab('history')">歷史</button>
+  </div>
+
+  <!-- 紀錄 tab -->
+  <div class="section active" id="tab-record">
+    <div class="step-indicator">
+      <div class="step-dot active" id="step1">1</div><div class="step-lbl">豆單</div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="step2">2</div><div class="step-lbl">計時中</div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="step3">3</div><div class="step-lbl">補填</div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="step4">4</div><div class="step-lbl">曲線</div>
+    </div>
+
+    <div class="banner banner-success" id="refill-banner" style="display:none;">
+      出豆完成！請補填溫度或里程碑資料，確認後畫出曲線。
+    </div>
+
+    <!-- 基本資訊 -->
+    <div class="card" id="card-info">
+      <div class="card-title">基本資訊</div>
+      <div class="grid2">
+        <div class="field"><label>批次編號</label><input type="text" id="batch-id" placeholder="20260321-01"></div>
+        <div class="field"><label>目標深度</label>
+          <select id="roast-target">
+            <option value="light">淺焙</option>
+            <option value="medium" selected>中焙</option>
+            <option value="dark">深焙</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>豆種</label><input type="text" id="bean-name" placeholder="耶加雪菲 水洗"></div>
+        <div class="field"><label>產區</label><input type="text" id="bean-origin" placeholder="衣索比亞 Kochere"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <label>備註（風味期待、生豆狀態…）</label>
+        <textarea id="notes" placeholder="例：預期花香、果酸；生豆含水率偏高"></textarea>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>生豆重量 (g)</label><input type="number" id="weight-in" placeholder="500" oninput="updateLoss()"></div>
+        <div class="field"><label>熟豆重量 (g)</label><input type="number" id="weight-out" placeholder="出豆後填入" oninput="updateLoss()"></div>
+      </div>
+      <div style="background:#f5f5f0; border-radius:8px; padding:8px 12px; margin-bottom:4px;">
+        <div class="calc-row">
+          <span class="calc-label">脫水率</span>
+          <span class="calc-val" id="loss-display">—</span>
+        </div>
+        <div style="font-size:11px; color:#888;">（生豆 − 熟豆）÷ 生豆 × 100%</div>
+      </div>
+      <button class="primary-btn" id="start-btn" onclick="startSession()">開始計時</button>
+    </div>
+
+    <!-- 關鍵里程碑 -->
+    <div class="card" id="card-events" style="opacity:0.45; pointer-events:none;">
+      <div class="card-title">關鍵里程碑</div>
+      <div class="ms-solo">
+        <div class="mlabel">入豆溫 Charge</div>
+        <input type="number" id="charge-temp" placeholder="°C">
+      </div>
+      <div class="divider"></div>
+      <div class="ms-header" style="margin-top:8px;">
+        <span>事件</span><span>時間</span><span>當下溫度 °C</span>
+      </div>
+      <div class="milestone-row">
+        <div class="mlabel">回溫點 TP</div>
+        <input type="text" id="ms-tp-t" placeholder="—" readonly>
+        <input type="number" id="ms-tp-temp" placeholder="填溫度">
+      </div>
+      <div class="milestone-row">
+        <div class="mlabel">轉黃點 Yellowing</div>
+        <input type="text" id="ms-yellow-t" placeholder="—" readonly>
+        <input type="number" id="ms-yellow-temp" placeholder="填溫度">
+      </div>
+      <div class="milestone-row">
+        <div class="mlabel">一爆 First Crack</div>
+        <input type="text" id="ms-fc-t" placeholder="—" readonly>
+        <input type="number" id="ms-fc-temp" placeholder="填溫度">
+      </div>
+      <div class="milestone-row">
+        <div class="mlabel">二爆 Second Crack</div>
+        <input type="text" id="ms-sc-t" placeholder="—" readonly>
+        <input type="number" id="ms-sc-temp" placeholder="填溫度">
+      </div>
+      <div class="milestone-row" style="padding-top:8px; border-top:0.5px solid rgba(0,0,0,0.1); margin-top:4px;">
+        <div class="mlabel">出豆 Drop</div>
+        <input type="text" id="ms-drop-t" placeholder="—" readonly>
+        <input type="number" id="ms-drop-temp" placeholder="填溫度">
+      </div>
+      <div style="margin-top:10px; background:#f5f5f0; border-radius:8px; padding:8px 12px;">
+        <div class="calc-row">
+          <span class="calc-label">DTR 發展時間比例</span>
+          <span class="calc-val" id="dtr-display">—</span>
+        </div>
+        <div style="font-size:11px; color:#888;">（一爆至出豆）÷（下豆至出豆）× 100%</div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="font-size:12px; color:#888; margin-bottom:8px;">快速標記（點擊記錄當下時間）</div>
+        <div class="event-grid">
+          <div class="event-btn" id="btn-tp" onclick="markMS('tp')">回溫點 TP<span class="time-tag" id="tag-tp">點擊標記</span></div>
+          <div class="event-btn" id="btn-yellow" onclick="markMS('yellow')">轉黃點<span class="time-tag" id="tag-yellow">點擊標記</span></div>
+          <div class="event-btn" id="btn-fc" onclick="markMS('fc')">一爆 FC<span class="time-tag" id="tag-fc">點擊標記</span></div>
+          <div class="event-btn" id="btn-sc" onclick="markMS('sc')">二爆 SC<span class="time-tag" id="tag-sc">點擊標記</span></div>
+          <div class="event-btn drop-btn" id="btn-drop" onclick="markDrop()">出豆 Drop<span class="time-tag" id="tag-drop">點擊標記</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 每分鐘紀錄 -->
+    <div class="card" id="card-temps" style="opacity:0.45; pointer-events:none;">
+      <div class="card-title">每分鐘紀錄</div>
+      <div class="log-header">
+        <span>分</span><span>豆溫 °C</span><span>火力 %</span><span>風門</span><span>ROR</span><span>事件/備註</span>
+      </div>
+      <div id="temp-rows"></div>
+      <button class="add-temp-btn" onclick="addTempRow()">＋ 新增一行</button>
+    </div>
+
+    <div id="card-finish" style="display:none; margin-bottom:12px;">
+      <button class="primary-btn confirm-btn" onclick="confirmAndDraw()">確認資料，畫出烘焙曲線</button>
+    </div>
+  </div>
+
+  <!-- 曲線 tab -->
+  <div class="section" id="tab-chart">
+    <div id="chart-empty" class="empty-state">完成烘豆並確認資料後<br>曲線會顯示在這裡</div>
+    <div id="chart-content" style="display:none;">
+      <div style="font-size:11px; font-family:monospace; color:#888; margin-bottom:6px;" id="chart-batch"></div>
+      <div class="metric-row" id="metrics-row"></div>
+      <div class="metric-row3" id="metrics-row2"></div>
+      <div class="card">
+        <div class="card-title">烘焙曲線（豆溫）</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-line" style="background:#D85A30;"></div>豆溫</div>
+          <div class="legend-item"><div style="width:2px;height:12px;background:#185FA5;opacity:0.7;"></div>回溫點</div>
+          <div class="legend-item"><div style="width:2px;height:12px;background:#EF9F27;"></div>轉黃</div>
+          <div class="legend-item"><div style="width:2px;height:12px;background:#E24B4A;"></div>一爆</div>
+          <div class="legend-item"><div style="width:2px;height:12px;background:#884AB7;"></div>二爆</div>
+        </div>
+        <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">ROR &nbsp;<span style="font-size:11px;color:#888;">綠=正常 · 橙=注意 · 紅=異常</span></div>
+        <div class="chart-wrap-sm"><canvas id="rorChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">火力 / 風門</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-line" style="background:#BA7517;"></div>火力 (%)</div>
+          <div class="legend-item"><div style="width:18px;border-top:2px dashed #185FA5;"></div>風門</div>
+        </div>
+        <div class="chart-wrap-sm"><canvas id="powerChart"></canvas></div>
+      </div>
+      <div id="chart-notes" style="display:none;" class="card">
+        <div class="card-title">備註</div>
+        <div id="chart-notes-text" style="font-size:13px;color:#666;line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 歷史 tab -->
+  <div class="section" id="tab-history">
+    <div id="history-list"><div class="empty-state">還沒有烘豆記錄</div></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script>
+let timerInterval = null, startTime = null, sessionActive = false, dropDone = false;
+let events = {}, allRoasts = [];
+let tempChartI = null, rorChartI = null, powerChartI = null;
+
+const EVENT_COLORS = { tp:'#185FA5', yellow:'#EF9F27', fc:'#E24B4A', sc:'#884AB7', drop:'#1D9E75' };
+const EVENT_LABELS = { tp:'TP', yellow:'轉黃', fc:'FC', sc:'SC', drop:'出豆' };
+
+function switchTab(name) {
+  ['record','chart','history'].forEach((n,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', n===name);
+    document.getElementById('tab-'+n).classList.toggle('active', n===name);
+  });
+  if (name==='history') renderHistory();
+}
+
+function setStep(n) {
+  for (let i=1;i<=4;i++) {
+    const el = document.getElementById('step'+i);
+    if (i<n) { el.className='step-dot done'; el.textContent='✓'; }
+    else if (i===n) { el.className='step-dot active'; el.textContent=i; }
+    else { el.className='step-dot'; el.textContent=i; }
+  }
+}
+
+function unlock(id) {
+  const el = document.getElementById(id);
+  el.style.opacity='1'; el.style.pointerEvents='auto';
+}
+
+function elapsed() { return startTime ? (Date.now()-startTime)/1000 : 0; }
+function fmtTime(s) { return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+
+function updateLoss() {
+  const wi = parseFloat(document.getElementById('weight-in').value);
+  const wo = parseFloat(document.getElementById('weight-out').value);
+  document.getElementById('loss-display').textContent =
+    (wi>0 && wo>0 && wo<wi) ? ((wi-wo)/wi*100).toFixed(1)+'%' : '—';
+}
+
+function updateDTR() {
+  const fc=events.fc, drop=events.drop, total=drop||elapsed();
+  document.getElementById('dtr-display').textContent =
+    (fc && drop && total>0) ? ((drop-fc)/total*100).toFixed(1)+'%' : '—';
+}
+
+function autoGenBatchId() {
+  if (document.getElementById('batch-id').value) return;
+  const d = new Date();
+  document.getElementById('batch-id').value =
+    d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-01';
+}
+
+function startSession() {
+  autoGenBatchId();
+  sessionActive=true; dropDone=false;
+  startTime=Date.now(); events={};
+  document.getElementById('start-btn').disabled=true;
+  document.getElementById('start-btn').textContent='計時中...';
+  document.getElementById('session-status').textContent='烘豆進行中';
+  unlock('card-events'); unlock('card-temps');
+  setStep(2);
+  timerInterval = setInterval(()=>{
+    const e = Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('timer-display').textContent =
+      String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+  },500);
+  for (let i=0;i<14;i++) addTempRow();
+}
+
+function markMS(key) {
+  if (!sessionActive) return;
+  const t = elapsed();
+  events[key]=t;
+  document.getElementById('btn-'+key).classList.add('marked');
+  document.getElementById('tag-'+key).textContent=fmtTime(t);
+  const tEl = document.getElementById('ms-'+key+'-t');
+  tEl.value=fmtTime(t); tEl.classList.add('auto-filled');
+  updateDTR();
+}
+
+function markDrop() {
+  if (!sessionActive) return;
+  const t=elapsed(); events.drop=t;
+  document.getElementById('btn-drop').classList.add('marked');
+  document.getElementById('tag-drop').textContent=fmtTime(t);
+  const tEl=document.getElementById('ms-drop-t');
+  tEl.value=fmtTime(t); tEl.classList.add('auto-filled');
+  clearInterval(timerInterval);
+  sessionActive=false; dropDone=true;
+  document.getElementById('session-status').textContent='出豆完成，可補填資料';
+  document.getElementById('refill-banner').style.display='block';
+  document.getElementById('card-finish').style.display='block';
+  setStep(3); updateDTR();
+}
+
+function addTempRow() {
+  const container=document.getElementById('temp-rows');
+  const idx=container.children.length;
+  const div=document.createElement('div');
+  div.className='temp-row';
+  div.innerHTML=`
+    <div class="min-label">${idx}'</div>
+    <input type="number" placeholder="—" id="t-${idx}" onchange="calcROR(${idx})" inputmode="decimal">
+    <input type="number" placeholder="—" id="p-${idx}" min="0" max="100" inputmode="decimal">
+    <input type="text"   placeholder="—" id="d-${idx}">
+    <input type="text"   placeholder="—" id="r-${idx}" readonly>
+    <input type="text"   placeholder="—" id="n-${idx}">
+  `;
+  container.appendChild(div);
+}
+
+function calcROR(idx) {
+  if (idx<1) return;
+  const c=parseFloat(document.getElementById('t-'+idx)?.value);
+  const p=parseFloat(document.getElementById('t-'+(idx-1))?.value);
+  const el=document.getElementById('r-'+idx);
+  if (!isNaN(c) && !isNaN(p) && el) el.value=(c-p).toFixed(1);
+}
+
+function collectRows() {
+  const n=document.getElementById('temp-rows').children.length;
+  const temps=[],powers=[],damps=[],rors=[],rowNotes=[];
+  for (let i=0;i<n;i++) {
+    temps.push(parseFloat(document.getElementById('t-'+i)?.value)||null);
+    powers.push(parseFloat(document.getElementById('p-'+i)?.value)||null);
+    damps.push(document.getElementById('d-'+i)?.value||null);
+    rowNotes.push(document.getElementById('n-'+i)?.value||null);
+    rors.push(i===0?null:
+      (temps[i]!==null&&temps[i-1]!==null?parseFloat((temps[i]-temps[i-1]).toFixed(1)):null));
+  }
+  return {temps,powers,damps,rors,rowNotes};
+}
+
+function getMilestones() {
+  return {
+    tp:     {time:document.getElementById('ms-tp-t').value,     temp:document.getElementById('ms-tp-temp').value},
+    yellow: {time:document.getElementById('ms-yellow-t').value, temp:document.getElementById('ms-yellow-temp').value},
+    fc:     {time:document.getElementById('ms-fc-t').value,     temp:document.getElementById('ms-fc-temp').value},
+    sc:     {time:document.getElementById('ms-sc-t').value,     temp:document.getElementById('ms-sc-temp').value},
+    drop:   {time:document.getElementById('ms-drop-t').value,   temp:document.getElementById('ms-drop-temp').value},
+  };
+}
+
+function confirmAndDraw() {
+  const {temps,powers,damps,rors,rowNotes}=collectRows();
+  const ms=getMilestones();
+  const batchId   =document.getElementById('batch-id').value||'—';
+  const beanName  =document.getElementById('bean-name').value||'未命名';
+  const origin    =document.getElementById('bean-origin').value||'';
+  const weightIn  =parseFloat(document.getElementById('weight-in').value)||null;
+  const weightOut =parseFloat(document.getElementById('weight-out').value)||null;
+  const chargeTemp=document.getElementById('charge-temp').value;
+  const target    =document.getElementById('roast-target').value;
+  const notes     =document.getElementById('notes').value;
+  const totalTime =events.drop||elapsed();
+  const lossRate  =weightIn&&weightOut?((weightIn-weightOut)/weightIn*100).toFixed(1):null;
+  const dtr       =(events.fc&&events.drop&&totalTime>0)?((events.drop-events.fc)/totalTime*100).toFixed(1)+'%':'—';
+  const roast={batchId,beanName,origin,weightIn,weightOut,lossRate,chargeTemp,target,notes,events,ms,temps,powers,damps,rors,rowNotes,totalTime,dtr,date:new Date().toLocaleDateString('zh-TW')};
+  allRoasts.unshift(roast);
+  setStep(4);
+  switchTab('chart');
+  renderCharts(roast);
+}
+
+function renderCharts(r) {
+  document.getElementById('chart-empty').style.display='none';
+  document.getElementById('chart-content').style.display='block';
+  document.getElementById('chart-batch').textContent=
+    r.batchId+'　'+r.beanName+(r.origin?'・'+r.origin:'')+'　'+r.date;
+
+  const minuteLabels=r.temps.map((_,i)=>i);
+  const validT=r.temps.filter(t=>t!==null);
+  const minT=validT.length?Math.min(...validT)-15:70;
+  const maxT=validT.length?Math.max(...validT)+15:240;
+  const fcTime=r.ms.fc.time||'—';
+  const devTime=(r.events.fc&&r.events.drop)?fmtTime(r.events.drop-r.events.fc):'—';
+
+  document.getElementById('metrics-row').innerHTML=`
+    <div class="metric"><div class="val">${fmtTime(r.totalTime)}</div><div class="lbl">總時間</div></div>
+    <div class="metric"><div class="val">${fcTime}</div><div class="lbl">一爆時間</div></div>
+    <div class="metric"><div class="val">${devTime}</div><div class="lbl">發展時間</div></div>
+    <div class="metric"><div class="val">${r.lossRate?r.lossRate+'%':'—'}</div><div class="lbl">脫水率</div></div>
+  `;
+  document.getElementById('metrics-row2').innerHTML=`
+    <div class="metric"><div class="val">${r.dtr}</div><div class="lbl">DTR</div></div>
+    <div class="metric"><div class="val">${r.chargeTemp?r.chargeTemp+'°C':'—'}</div><div class="lbl">入豆溫</div></div>
+    <div class="metric"><div class="val">${r.ms.tp.temp?r.ms.tp.temp+'°C':'—'}</div><div class="lbl">回溫點溫度</div></div>
+  `;
+  if (r.notes) {
+    document.getElementById('chart-notes').style.display='block';
+    document.getElementById('chart-notes-text').textContent=r.notes;
+  }
+
+  const annotations={};
+  ['tp','yellow','fc','sc','drop'].forEach(key=>{
+    const t=r.events[key]; if (!t) return;
+    const xVal=t/60;
+    annotations['line_'+key]={
+      type:'line', xMin:xVal, xMax:xVal,
+      borderColor:EVENT_COLORS[key], borderWidth:1.5,
+      borderDash:key==='drop'?[]:[4,3],
+      label:{display:true,content:EVENT_LABELS[key],position:'start',
+        font:{size:10},color:EVENT_COLORS[key],backgroundColor:'transparent',yAdjust:-4}
+    };
+  });
+
+  if (tempChartI) tempChartI.destroy();
+  tempChartI=new Chart(document.getElementById('tempChart'),{
+    type:'line',
+    data:{labels:minuteLabels,datasets:[{
+      label:'豆溫',data:r.temps,
+      borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,0.07)',
+      borderWidth:2,tension:0.4,pointRadius:3,fill:true,spanGaps:true
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},annotation:{annotations}},
+      scales:{
+        y:{min:minT,max:maxT,ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,0.06)'}},
+        x:{ticks:{font:{size:11},callback:v=>v+"'"},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+
+  if (rorChartI) rorChartI.destroy();
+  rorChartI=new Chart(document.getElementById('rorChart'),{
+    type:'bar',
+    data:{labels:minuteLabels,datasets:[{
+      label:'ROR',data:r.rors,
+      backgroundColor:r.rors.map(v=>v===null?'rgba(0,0,0,0)':v>28||v<4?'#E24B4A':v>22||v<7?'#EF9F27':'#1D9E75'),
+      borderWidth:0,borderRadius:3
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.06)'}},
+        x:{ticks:{font:{size:11},callback:v=>v+"'"},grid:{display:false}}
+      }
+    }
+  });
+
+  if (powerChartI) powerChartI.destroy();
+  powerChartI=new Chart(document.getElementById('powerChart'),{
+    type:'line',
+    data:{labels:minuteLabels,datasets:[
+      {label:'火力',data:r.powers,borderColor:'#BA7517',borderWidth:2,tension:0.3,pointRadius:3,spanGaps:true,yAxisID:'yP'},
+      {label:'風門',data:r.damps.map(d=>d?parseFloat(d)||null:null),borderColor:'#185FA5',borderWidth:2,borderDash:[4,3],tension:0.3,pointRadius:3,spanGaps:true,yAxisID:'yD'}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        yP:{position:'left',min:0,max:100,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.06)'}},
+        yD:{position:'right',min:0,max:10,ticks:{font:{size:10}},grid:{display:false}},
+        x:{ticks:{font:{size:11},callback:v=>v+"'"},grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+}
+
+function renderHistory() {
+  const list=document.getElementById('history-list');
+  if (!allRoasts.length){list.innerHTML='<div class="empty-state">還沒有烘豆記錄</div>';return;}
+  list.innerHTML=allRoasts.map((r,i)=>{
+    const depth=r.target==='light'?'淺焙':r.target==='medium'?'中焙':'深焙';
+    return `<div class="history-item" onclick="viewRoast(${i})">
+      <div class="batch-id-txt">${r.batchId}</div>
+      <div class="history-bean">${r.beanName}${r.origin?'・'+r.origin:''}</div>
+      <div class="history-meta">${r.date} · ${depth} · ${fmtTime(r.totalTime)} · 脫水率 ${r.lossRate?r.lossRate+'%':'—'} · DTR ${r.dtr}</div>
+    </div>`;
+  }).join('');
+}
+
+function viewRoast(idx) {
+  switchTab('chart');
+  renderCharts(allRoasts[idx]);
+}
+</script>
+</body>
+</html>
