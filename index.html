@@ -134,16 +134,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
 .legend-line { width: 18px; height: 2px; border-radius: 1px; }
+
+.cupping-section { margin-top:10px; padding-top:10px; border-top:0.5px solid rgba(0,0,0,0.08); }
+.cupping-toggle { font-size:12px; color:#3266ad; cursor:pointer; font-weight:500; background:none; border:none; padding:0; }
+.cupping-form { margin-top:10px; background:#f5f5f0; border-radius:10px; padding:12px; }
+.cupping-entry { background:#fff; border:0.5px solid rgba(0,0,0,0.1); border-radius:8px; padding:10px; margin-top:8px; }
+.cupping-entry-date { font-size:11px; color:#888; }
+.cupping-note { font-size:13px; color:#444; line-height:1.7; margin-top:6px; }
 </style>
 </head>
 <body>
 <div class="app">
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-    <div>
-      <div style="font-size:18px; font-weight:500; color:#1a1a1a;">烘豆紀錄</div>
-      <div style="font-size:12px; color:#888;" id="session-status">準備開始</div>
-    </div>
-    <div id="timer-display" style="font-size:24px; font-weight:500; font-family:monospace; color:#1a1a1a; letter-spacing:1px;">00:00</div>
+  <div style="margin-bottom:14px;">
+    <div style="font-size:18px; font-weight:500; color:#1a1a1a;">烘豆紀錄</div>
+    <div style="font-size:12px; color:#888;" id="session-status">準備開始</div>
   </div>
 
   <div class="tabs">
@@ -256,6 +260,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="event-btn drop-btn" id="btn-drop" onclick="markDrop()">出豆 Drop<span class="time-tag" id="tag-drop">點擊標記</span></div>
         </div>
       </div>
+
+      <!-- 計時器：固定在快速標記下方 -->
+      <div id="timer-bar" style="display:none; background:#1a1a1a; border-radius:10px; padding:10px 16px; margin-top:12px; display:none; align-items:center; justify-content:space-between;">
+        <div style="font-size:12px; color:#888;">經過時間</div>
+        <div id="timer-display" style="font-size:30px; font-weight:500; font-family:monospace; color:#fff; letter-spacing:2px;">00:00</div>
+        <div style="font-size:12px; color:#888;">分：秒</div>
+      </div>
     </div>
 
     <!-- 每分鐘紀錄 -->
@@ -323,6 +334,29 @@ let timerInterval = null, startTime = null, sessionActive = false, dropDone = fa
 let events = {}, allRoasts = [];
 let tempChartI = null, rorChartI = null, powerChartI = null;
 
+// ── localStorage 工具函數 ──
+const STORAGE_KEY = 'roastTracker_v1';
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allRoasts));
+  } catch(e) {
+    alert('儲存失敗：瀏覽器空間不足，建議刪除一些舊紀錄。');
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) allRoasts = JSON.parse(raw);
+  } catch(e) {
+    allRoasts = [];
+  }
+}
+
+// 頁面載入時自動讀取
+loadFromStorage();
+
 const EVENT_COLORS = { tp:'#185FA5', yellow:'#EF9F27', fc:'#E24B4A', sc:'#884AB7', drop:'#1D9E75' };
 const EVENT_LABELS = { tp:'TP', yellow:'轉黃', fc:'FC', sc:'SC', drop:'出豆' };
 
@@ -378,6 +412,7 @@ function startSession() {
   document.getElementById('start-btn').disabled=true;
   document.getElementById('start-btn').textContent='計時中...';
   document.getElementById('session-status').textContent='烘豆進行中';
+  document.getElementById('timer-bar').style.display='flex';
   unlock('card-events'); unlock('card-temps');
   setStep(2);
   timerInterval = setInterval(()=>{
@@ -388,6 +423,18 @@ function startSession() {
   for (let i=0;i<14;i++) addTempRow();
 }
 
+const EVENT_NOTE_LABELS = { tp:'回溫點(TP)', yellow:'轉黃點', fc:'一爆(FC)', sc:'二爆(SC)', drop:'出豆' };
+
+function autoFillNote(key, timeSec, tempVal) {
+  const minRow = Math.round(timeSec / 60);
+  const noteEl = document.getElementById('n-' + minRow);
+  if (!noteEl) return;
+  const timeStr = fmtTime(timeSec);
+  const tempStr = tempVal ? ' ' + tempVal + '°C' : '';
+  const label = EVENT_NOTE_LABELS[key] || key;
+  noteEl.value = label + ' ' + timeStr + tempStr;
+}
+
 function markMS(key) {
   if (!sessionActive) return;
   const t = elapsed();
@@ -396,6 +443,16 @@ function markMS(key) {
   document.getElementById('tag-'+key).textContent=fmtTime(t);
   const tEl = document.getElementById('ms-'+key+'-t');
   tEl.value=fmtTime(t); tEl.classList.add('auto-filled');
+  // 自動填入最近分鐘行的備註
+  const tempVal = document.getElementById('ms-'+key+'-temp')?.value || '';
+  autoFillNote(key, t, tempVal);
+  // 若之後溫度欄被填入，連動更新備註
+  const tempInput = document.getElementById('ms-'+key+'-temp');
+  if (tempInput) {
+    tempInput.addEventListener('change', function() {
+      autoFillNote(key, events[key], this.value);
+    }, { once: true });
+  }
   updateDTR();
 }
 
@@ -406,6 +463,13 @@ function markDrop() {
   document.getElementById('tag-drop').textContent=fmtTime(t);
   const tEl=document.getElementById('ms-drop-t');
   tEl.value=fmtTime(t); tEl.classList.add('auto-filled');
+  autoFillNote('drop', t, document.getElementById('ms-drop-temp')?.value || '');
+  const dropTempInput = document.getElementById('ms-drop-temp');
+  if (dropTempInput) {
+    dropTempInput.addEventListener('change', function() {
+      autoFillNote('drop', events.drop, this.value);
+    }, { once: true });
+  }
   clearInterval(timerInterval);
   sessionActive=false; dropDone=true;
   document.getElementById('session-status').textContent='出豆完成，可補填資料';
@@ -478,6 +542,7 @@ function confirmAndDraw() {
   const dtr       =(events.fc&&events.drop&&totalTime>0)?((events.drop-events.fc)/totalTime*100).toFixed(1)+'%':'—';
   const roast={batchId,beanName,origin,weightIn,weightOut,lossRate,chargeTemp,target,notes,events,ms,temps,powers,damps,rors,rowNotes,totalTime,dtr,date:new Date().toLocaleDateString('zh-TW')};
   allRoasts.unshift(roast);
+  saveToStorage();
   setStep(4);
   switchTab('chart');
   renderCharts(roast);
@@ -583,14 +648,136 @@ function renderCharts(r) {
 function renderHistory() {
   const list=document.getElementById('history-list');
   if (!allRoasts.length){list.innerHTML='<div class="empty-state">還沒有烘豆記錄</div>';return;}
-  list.innerHTML=allRoasts.map((r,i)=>{
+  const countBar=`<div style="font-size:12px;color:#888;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+    <span>共 ${allRoasts.length} 筆紀錄（儲存於瀏覽器）</span>
+    <span style="font-size:11px;color:#aaa;">點右側 × 可刪除</span>
+  </div>`;
+  list.innerHTML = countBar + allRoasts.map((r,i)=>{
     const depth=r.target==='light'?'淺焙':r.target==='medium'?'中焙':'深焙';
-    return `<div class="history-item" onclick="viewRoast(${i})">
-      <div class="batch-id-txt">${r.batchId}</div>
-      <div class="history-bean">${r.beanName}${r.origin?'・'+r.origin:''}</div>
-      <div class="history-meta">${r.date} · ${depth} · ${fmtTime(r.totalTime)} · 脫水率 ${r.lossRate?r.lossRate+'%':'—'} · DTR ${r.dtr}</div>
+    const lossStr=r.lossRate?r.lossRate+'%':'—';
+    const weightOutVal=r.weightOut||'';
+    const cup=r.cupping||null;
+    const hasCupping=cup&&(cup.date||cup.note);
+
+    // 杯測顯示區：有資料就顯示，否則空白
+    const cuppingDisplay = hasCupping ? `
+      <div class="cupping-entry" id="cup-display-${i}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div class="cupping-entry-date">${cup.date||''}${cup.dayAfter?' · 烘後第'+cup.dayAfter+'天':''}</div>
+          <button class="cupping-toggle" onclick="toggleCuppingEdit(${i})" style="font-size:11px;">編輯</button>
+        </div>
+        <div class="cupping-note" style="white-space:pre-wrap;">${cup.note||'（無文字紀錄）'}</div>
+      </div>` : '';
+
+    // 有資料預設隱藏表單，無資料預設顯示
+    const formDisplay = hasCupping ? 'none' : 'block';
+
+    return `<div class="history-item" id="hist-${i}">
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <div style="flex:1;cursor:pointer;" onclick="viewRoast(${i})">
+          <div class="batch-id-txt">${r.batchId}</div>
+          <div class="history-bean">${r.beanName}${r.origin?'・'+r.origin:''}</div>
+          <div class="history-meta">${r.date} · ${depth} · ${fmtTime(r.totalTime)} · 脫水率 ${lossStr} · DTR ${r.dtr}</div>
+        </div>
+        <button onclick="deleteRoast(${i})" style="flex-shrink:0;border:none;background:none;font-size:18px;color:#ccc;cursor:pointer;padding:0 4px;line-height:1;">×</button>
+      </div>
+
+      <!-- 熟豆重量 -->
+      <div style="margin-top:8px;padding-top:8px;border-top:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:#888;flex-shrink:0;">熟豆重量 (g)</span>
+        <input type="number" inputmode="decimal" value="${weightOutVal}" placeholder="放涼後填入"
+          style="flex:1;padding:6px 8px;font-size:13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;background:#f5f5f0;color:#1a1a1a;"
+          onchange="updateWeightOut(${i},this.value)">
+        <span id="loss-tag-${i}" style="font-size:12px;font-weight:500;color:#1D9E75;min-width:48px;text-align:right;">${r.lossRate?r.lossRate+'%':''}</span>
+      </div>
+
+      <!-- 杯測區塊 -->
+      <div class="cupping-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:#888;">杯測紀錄</span>
+          ${!hasCupping?'':''}
+        </div>
+
+        ${cuppingDisplay}
+
+        <!-- 杯測表單 -->
+        <div id="cupping-form-${i}" style="display:${formDisplay};" class="cupping-form">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div>
+              <div style="font-size:11px;color:#888;margin-bottom:3px;">杯測日期</div>
+              <input type="date" id="cup-date-${i}" value="${cup?.date||''}"
+                style="width:100%;padding:6px 8px;font-size:13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;background:#fff;color:#1a1a1a;">
+            </div>
+            <div>
+              <div style="font-size:11px;color:#888;margin-bottom:3px;">烘後第幾天</div>
+              <input type="number" id="cup-day-${i}" placeholder="例：7" min="1" value="${cup?.dayAfter||''}"
+                style="width:100%;padding:6px 8px;font-size:13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;background:#fff;color:#1a1a1a;">
+            </div>
+          </div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">風味描述 / 備註</div>
+          <textarea id="cup-note-${i}" placeholder="香氣、口感、餘韻、酸甜苦表現、異常、下次調整方向…"
+            style="width:100%;padding:8px;font-size:13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;background:#fff;color:#1a1a1a;min-height:80px;resize:vertical;line-height:1.6;">${cup?.note||''}</textarea>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+            ${hasCupping?`<button onclick="toggleCuppingEdit(${i})" style="padding:10px;font-size:13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;background:#fff;color:#888;cursor:pointer;">取消</button>`:'<div></div>'}
+            <button onclick="saveCupping(${i})" style="padding:10px;font-size:13px;border:none;border-radius:8px;background:#D85A30;color:#fff;font-weight:500;cursor:pointer;">儲存杯測</button>
+          </div>
+        </div>
+      </div>
     </div>`;
   }).join('');
+
+  // 無杯測資料時預設今天日期
+  allRoasts.forEach((r,i)=>{
+    if (!r.cupping) {
+      const el=document.getElementById('cup-date-'+i);
+      if (el && !el.value) el.value=new Date().toISOString().split('T')[0];
+    }
+  });
+}
+
+function toggleCuppingEdit(idx) {
+  const form=document.getElementById('cupping-form-'+idx);
+  const display=document.getElementById('cup-display-'+idx);
+  if (!form) return;
+  const isHidden=form.style.display==='none';
+  form.style.display=isHidden?'block':'none';
+  if (display) display.style.display=isHidden?'none':'block';
+}
+
+function saveCupping(idx) {
+  const r=allRoasts[idx];
+  const dateVal=document.getElementById('cup-date-'+idx)?.value||'';
+  const dayVal=document.getElementById('cup-day-'+idx)?.value||'';
+  const noteVal=document.getElementById('cup-note-'+idx)?.value||'';
+  r.cupping={
+    date: dateVal,
+    dayAfter: dayVal ? parseInt(dayVal) : null,
+    note: noteVal,
+    updatedAt: new Date().toISOString()
+  };
+  saveToStorage();
+  renderHistory();
+}
+
+function updateWeightOut(idx, val) {
+  const r = allRoasts[idx];
+  const wo = parseFloat(val);
+  r.weightOut = wo || null;
+  if (r.weightIn && wo && wo < r.weightIn) {
+    r.lossRate = ((r.weightIn - wo) / r.weightIn * 100).toFixed(1);
+  } else {
+    r.lossRate = null;
+  }
+  saveToStorage();
+  const tag = document.getElementById('loss-tag-'+idx);
+  if (tag) tag.textContent = r.lossRate ? r.lossRate+'%' : '';
+}
+
+function deleteRoast(idx) {
+  if (!confirm('確定刪除這筆紀錄？')) return;
+  allRoasts.splice(idx, 1);
+  saveToStorage();
+  renderHistory();
 }
 
 function viewRoast(idx) {
