@@ -159,22 +159,116 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <!-- 紀錄 tab -->
   <div class="section active" id="tab-record">
     <div class="step-indicator">
-      <div class="step-dot active" id="step1">1</div><div class="step-lbl">豆單</div>
+      <div class="step-dot active" id="step1">1</div><div class="step-lbl">入豆溫</div>
       <div class="step-line"></div>
       <div class="step-dot" id="step2">2</div><div class="step-lbl">計時中</div>
       <div class="step-line"></div>
-      <div class="step-dot" id="step3">3</div><div class="step-lbl">補填</div>
+      <div class="step-dot" id="step3">3</div><div class="step-lbl">出豆</div>
       <div class="step-line"></div>
-      <div class="step-dot" id="step4">4</div><div class="step-lbl">曲線</div>
+      <div class="step-dot" id="step4">4</div><div class="step-lbl">補填資料</div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="step5">5</div><div class="step-lbl">曲線</div>
     </div>
 
-    <div class="banner banner-success" id="refill-banner" style="display:none;">
-      出豆完成！請補填溫度或里程碑資料，確認後畫出曲線。
+    <!-- Step 1：只填入豆溫 -->
+    <div class="card" id="card-charge">
+      <div class="card-title">入豆溫</div>
+      <div class="ms-solo" style="margin-bottom:12px;">
+        <div class="mlabel">入豆溫 Charge</div>
+        <input type="number" id="charge-temp" placeholder="°C" inputmode="decimal">
+      </div>
+      <button class="primary-btn" id="start-btn" onclick="startSession()">開始計時</button>
     </div>
 
-    <!-- 基本資訊 -->
-    <div class="card" id="card-info">
-      <div class="card-title">基本資訊</div>
+    <!-- 烘豆中：快速標記 + 溫度 + 計時器 -->
+    <div class="card" id="card-events" style="opacity:0.45; pointer-events:none;">
+      <div class="card-title">關鍵里程碑</div>
+
+      <!-- 每個事件：標記按鈕 + 時間 + 溫度 三欄 -->
+      <div style="display:grid; grid-template-columns:1fr 56px 72px; gap:6px; margin-bottom:6px;">
+        <div style="font-size:11px; color:#888; padding-left:2px;">事件</div>
+        <div style="font-size:11px; color:#888; text-align:center;">時間</div>
+        <div style="font-size:11px; color:#888; text-align:center;">溫度 °C</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 56px 72px; gap:6px; align-items:center; margin-bottom:8px;">
+        <div class="event-btn" id="btn-tp" onclick="markMS('tp')" style="padding:12px 8px;">
+          回溫點 TP<span class="time-tag" id="tag-tp">點擊標記</span>
+        </div>
+        <div style="font-size:12px; color:#888; text-align:center;" id="time-tp-display">—</div>
+        <input type="number" id="ms-tp-temp" placeholder="—" inputmode="decimal"
+          style="padding:8px 4px; font-size:13px; border:0.5px solid rgba(0,0,0,0.15); border-radius:8px; background:#f5f5f0; color:#1a1a1a; text-align:center; width:100%;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 56px 72px; gap:6px; align-items:center; margin-bottom:8px;">
+        <div class="event-btn" id="btn-yellow" onclick="markMS('yellow')" style="padding:12px 8px;">
+          轉黃點<span class="time-tag" id="tag-yellow">點擊標記</span>
+        </div>
+        <div style="font-size:12px; color:#888; text-align:center;" id="time-yellow-display">—</div>
+        <input type="number" id="ms-yellow-temp" placeholder="—" inputmode="decimal"
+          style="padding:8px 4px; font-size:13px; border:0.5px solid rgba(0,0,0,0.15); border-radius:8px; background:#f5f5f0; color:#1a1a1a; text-align:center; width:100%;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 56px 72px; gap:6px; align-items:center; margin-bottom:8px;">
+        <div class="event-btn" id="btn-fc" onclick="markMS('fc')" style="padding:12px 8px;">
+          一爆 FC<span class="time-tag" id="tag-fc">點擊標記</span>
+        </div>
+        <div style="font-size:12px; color:#888; text-align:center;" id="time-fc-display">—</div>
+        <input type="number" id="ms-fc-temp" placeholder="—" inputmode="decimal"
+          style="padding:8px 4px; font-size:13px; border:0.5px solid rgba(0,0,0,0.15); border-radius:8px; background:#f5f5f0; color:#1a1a1a; text-align:center; width:100%;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 56px 72px; gap:6px; align-items:center; margin-bottom:8px;">
+        <div class="event-btn" id="btn-sc" onclick="markMS('sc')" style="padding:12px 8px;">
+          二爆 SC<span class="time-tag" id="tag-sc">點擊標記</span>
+        </div>
+        <div style="font-size:12px; color:#888; text-align:center;" id="time-sc-display">—</div>
+        <input type="number" id="ms-sc-temp" placeholder="—" inputmode="decimal"
+          style="padding:8px 4px; font-size:13px; border:0.5px solid rgba(0,0,0,0.15); border-radius:8px; background:#f5f5f0; color:#1a1a1a; text-align:center; width:100%;">
+      </div>
+
+      <div style="border-top:0.5px solid rgba(0,0,0,0.08); margin: 4px 0 8px;"></div>
+
+      <!-- 出豆：整排按鈕 + 時間 + 溫度 -->
+      <div style="display:grid; grid-template-columns:1fr 56px 72px; gap:6px; align-items:center;">
+        <div class="event-btn drop-btn" id="btn-drop" onclick="markDrop()" style="padding:14px 8px; font-size:14px;">
+          出豆 Drop<span class="time-tag" id="tag-drop">點擊標記</span>
+        </div>
+        <div style="font-size:12px; color:#888; text-align:center;" id="time-drop-display">—</div>
+        <input type="number" id="ms-drop-temp" placeholder="—" inputmode="decimal"
+          style="padding:8px 4px; font-size:13px; border:0.5px solid rgba(0,0,0,0.15); border-radius:8px; background:#f5f5f0; color:#1a1a1a; text-align:center; width:100%;">
+      </div>
+
+      <!-- DTR 即時顯示 -->
+      <div style="margin-top:10px; background:#f5f5f0; border-radius:8px; padding:8px 12px;">
+        <div class="calc-row">
+          <span class="calc-label">DTR 發展時間比例</span>
+          <span class="calc-val" id="dtr-display">—</span>
+        </div>
+        <div style="font-size:11px; color:#888;">（一爆至出豆）÷（下豆至出豆）× 100%</div>
+      </div>
+
+      <!-- 計時器 -->
+      <div id="timer-bar" style="display:none; background:#1a1a1a; border-radius:10px; padding:10px 16px; margin-top:12px; align-items:center; justify-content:space-between;">
+        <div style="font-size:12px; color:#888;">經過時間</div>
+        <div id="timer-display" style="font-size:30px; font-weight:500; font-family:monospace; color:#fff; letter-spacing:2px;">00:00</div>
+        <div style="font-size:12px; color:#888;">分：秒</div>
+      </div>
+    </div>
+
+    <!-- 每分鐘紀錄 -->
+    <div class="card" id="card-temps" style="opacity:0.45; pointer-events:none;">
+      <div class="card-title">每分鐘紀錄</div>
+      <div class="log-header">
+        <span>分</span><span>豆溫 °C</span><span>火力 %</span><span>風門</span><span>ROR</span><span>事件/備註</span>
+      </div>
+      <div id="temp-rows"></div>
+      <button class="add-temp-btn" onclick="addTempRow()">＋ 新增一行</button>
+    </div>
+
+    <!-- 出豆後補填區塊（出豆後才出現） -->
+    <div class="card" id="card-refill" style="display:none;">
+      <div class="card-title">補填豆單資訊</div>
       <div class="grid2">
         <div class="field"><label>批次編號</label><input type="text" id="batch-id" placeholder="20260321-01"></div>
         <div class="field"><label>目標深度</label>
@@ -195,90 +289,61 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
       <div class="grid2">
         <div class="field"><label>生豆重量 (g)</label><input type="number" id="weight-in" placeholder="500" oninput="updateLoss()"></div>
-        <div class="field"><label>熟豆重量 (g)</label><input type="number" id="weight-out" placeholder="出豆後填入" oninput="updateLoss()"></div>
+        <div class="field"><label>熟豆重量 (g)</label><input type="number" id="weight-out" placeholder="放涼後填入" oninput="updateLoss()"></div>
       </div>
-      <div style="background:#f5f5f0; border-radius:8px; padding:8px 12px; margin-bottom:4px;">
+      <div style="background:#f5f5f0; border-radius:8px; padding:8px 12px; margin-bottom:12px;">
         <div class="calc-row">
           <span class="calc-label">脫水率</span>
           <span class="calc-val" id="loss-display">—</span>
         </div>
         <div style="font-size:11px; color:#888;">（生豆 − 熟豆）÷ 生豆 × 100%</div>
       </div>
-      <button class="primary-btn" id="start-btn" onclick="startSession()">開始計時</button>
-    </div>
 
-    <!-- 關鍵里程碑 -->
-    <div class="card" id="card-events" style="opacity:0.45; pointer-events:none;">
-      <div class="card-title">關鍵里程碑</div>
-      <div class="ms-solo">
-        <div class="mlabel">入豆溫 Charge</div>
-        <input type="number" id="charge-temp" placeholder="°C">
+      <!-- 里程碑時間＋溫度補填 -->
+      <div class="card-title" style="margin-bottom:8px;">關鍵里程碑</div>
+      <div class="ms-header">
+        <span>事件</span><span>時間（分:秒）</span><span>當下溫度 °C</span>
       </div>
-      <div class="divider"></div>
-      <div class="ms-header" style="margin-top:8px;">
-        <span>事件</span><span>時間</span><span>當下溫度 °C</span>
+      <div class="milestone-row">
+        <div class="mlabel">入豆溫 Charge</div>
+        <input type="text" id="ms-charge-t" placeholder="0:00">
+        <input type="number" id="charge-temp-refill" placeholder="°C">
       </div>
       <div class="milestone-row">
         <div class="mlabel">回溫點 TP</div>
-        <input type="text" id="ms-tp-t" placeholder="—" readonly>
+        <input type="text" id="ms-tp-t" placeholder="—  可手動填入">
         <input type="number" id="ms-tp-temp" placeholder="填溫度">
       </div>
       <div class="milestone-row">
         <div class="mlabel">轉黃點 Yellowing</div>
-        <input type="text" id="ms-yellow-t" placeholder="—" readonly>
+        <input type="text" id="ms-yellow-t" placeholder="—  可手動填入">
         <input type="number" id="ms-yellow-temp" placeholder="填溫度">
       </div>
       <div class="milestone-row">
         <div class="mlabel">一爆 First Crack</div>
-        <input type="text" id="ms-fc-t" placeholder="—" readonly>
+        <input type="text" id="ms-fc-t" placeholder="—  可手動填入">
         <input type="number" id="ms-fc-temp" placeholder="填溫度">
       </div>
       <div class="milestone-row">
         <div class="mlabel">二爆 Second Crack</div>
-        <input type="text" id="ms-sc-t" placeholder="—" readonly>
+        <input type="text" id="ms-sc-t" placeholder="—  可手動填入">
         <input type="number" id="ms-sc-temp" placeholder="填溫度">
       </div>
       <div class="milestone-row" style="padding-top:8px; border-top:0.5px solid rgba(0,0,0,0.1); margin-top:4px;">
         <div class="mlabel">出豆 Drop</div>
-        <input type="text" id="ms-drop-t" placeholder="—" readonly>
+        <input type="text" id="ms-drop-t" placeholder="—  可手動填入">
         <input type="number" id="ms-drop-temp" placeholder="填溫度">
       </div>
-      <div style="margin-top:10px; background:#f5f5f0; border-radius:8px; padding:8px 12px;">
+      <div style="margin-top:10px; background:#f5f5f0; border-radius:8px; padding:8px 12px; margin-bottom:4px;">
         <div class="calc-row">
           <span class="calc-label">DTR 發展時間比例</span>
           <span class="calc-val" id="dtr-display">—</span>
         </div>
         <div style="font-size:11px; color:#888;">（一爆至出豆）÷（下豆至出豆）× 100%</div>
       </div>
-      <div style="margin-top:12px;">
-        <div style="font-size:12px; color:#888; margin-bottom:8px;">快速標記（點擊記錄當下時間）</div>
-        <div class="event-grid">
-          <div class="event-btn" id="btn-tp" onclick="markMS('tp')">回溫點 TP<span class="time-tag" id="tag-tp">點擊標記</span></div>
-          <div class="event-btn" id="btn-yellow" onclick="markMS('yellow')">轉黃點<span class="time-tag" id="tag-yellow">點擊標記</span></div>
-          <div class="event-btn" id="btn-fc" onclick="markMS('fc')">一爆 FC<span class="time-tag" id="tag-fc">點擊標記</span></div>
-          <div class="event-btn" id="btn-sc" onclick="markMS('sc')">二爆 SC<span class="time-tag" id="tag-sc">點擊標記</span></div>
-          <div class="event-btn drop-btn" id="btn-drop" onclick="markDrop()">出豆 Drop<span class="time-tag" id="tag-drop">點擊標記</span></div>
-        </div>
-      </div>
-
-      <!-- 計時器：固定在快速標記下方 -->
-      <div id="timer-bar" style="display:none; background:#1a1a1a; border-radius:10px; padding:10px 16px; margin-top:12px; display:none; align-items:center; justify-content:space-between;">
-        <div style="font-size:12px; color:#888;">經過時間</div>
-        <div id="timer-display" style="font-size:30px; font-weight:500; font-family:monospace; color:#fff; letter-spacing:2px;">00:00</div>
-        <div style="font-size:12px; color:#888;">分：秒</div>
-      </div>
     </div>
 
-    <!-- 每分鐘紀錄 -->
-    <div class="card" id="card-temps" style="opacity:0.45; pointer-events:none;">
-      <div class="card-title">每分鐘紀錄</div>
-      <div class="log-header">
-        <span>分</span><span>豆溫 °C</span><span>火力 %</span><span>風門</span><span>ROR</span><span>事件/備註</span>
-      </div>
-      <div id="temp-rows"></div>
-      <button class="add-temp-btn" onclick="addTempRow()">＋ 新增一行</button>
-    </div>
-
+    <!-- 確認畫曲線按鈕 -->
     <div id="card-finish" style="display:none; margin-bottom:12px;">
       <button class="primary-btn confirm-btn" onclick="confirmAndDraw()">確認資料，畫出烘焙曲線</button>
     </div>
@@ -369,8 +434,9 @@ function switchTab(name) {
 }
 
 function setStep(n) {
-  for (let i=1;i<=4;i++) {
+  for (let i=1;i<=5;i++) {
     const el = document.getElementById('step'+i);
+    if (!el) continue;
     if (i<n) { el.className='step-dot done'; el.textContent='✓'; }
     else if (i===n) { el.className='step-dot active'; el.textContent=i; }
     else { el.className='step-dot'; el.textContent=i; }
@@ -399,14 +465,14 @@ function updateDTR() {
 }
 
 function autoGenBatchId() {
-  if (document.getElementById('batch-id').value) return;
-  const d = new Date();
-  document.getElementById('batch-id').value =
-    d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-01';
+  const el = document.getElementById('batch-id');
+  if (el && !el.value) {
+    const d = new Date();
+    el.value = d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-01';
+  }
 }
 
 function startSession() {
-  autoGenBatchId();
   sessionActive=true; dropDone=false;
   startTime=Date.now(); events={};
   document.getElementById('start-btn').disabled=true;
@@ -439,14 +505,18 @@ function markMS(key) {
   if (!sessionActive) return;
   const t = elapsed();
   events[key]=t;
+  const timeStr = fmtTime(t);
   document.getElementById('btn-'+key).classList.add('marked');
-  document.getElementById('tag-'+key).textContent=fmtTime(t);
-  const tEl = document.getElementById('ms-'+key+'-t');
-  tEl.value=fmtTime(t); tEl.classList.add('auto-filled');
-  // 自動填入最近分鐘行的備註
+  document.getElementById('tag-'+key).textContent = timeStr;
+  // 更新行內時間顯示
+  const dispEl = document.getElementById('time-'+key+'-display');
+  if (dispEl) { dispEl.textContent = timeStr; dispEl.style.color = '#1D9E75'; dispEl.style.fontWeight = '500'; }
+  // 同步到補填頁的時間欄
+  const refillT = document.getElementById('ms-'+key+'-t');
+  if (refillT) { refillT.value = timeStr; refillT.classList.add('auto-filled'); }
+  // 自動填備註
   const tempVal = document.getElementById('ms-'+key+'-temp')?.value || '';
   autoFillNote(key, t, tempVal);
-  // 若之後溫度欄被填入，連動更新備註
   const tempInput = document.getElementById('ms-'+key+'-temp');
   if (tempInput) {
     tempInput.addEventListener('change', function() {
@@ -459,10 +529,13 @@ function markMS(key) {
 function markDrop() {
   if (!sessionActive) return;
   const t=elapsed(); events.drop=t;
+  const timeStr = fmtTime(t);
   document.getElementById('btn-drop').classList.add('marked');
-  document.getElementById('tag-drop').textContent=fmtTime(t);
-  const tEl=document.getElementById('ms-drop-t');
-  tEl.value=fmtTime(t); tEl.classList.add('auto-filled');
+  document.getElementById('tag-drop').textContent=timeStr;
+  const dispEl = document.getElementById('time-drop-display');
+  if (dispEl) { dispEl.textContent = timeStr; dispEl.style.color = '#1D9E75'; dispEl.style.fontWeight = '500'; }
+  const refillT = document.getElementById('ms-drop-t');
+  if (refillT) { refillT.value = timeStr; refillT.classList.add('auto-filled'); }
   autoFillNote('drop', t, document.getElementById('ms-drop-temp')?.value || '');
   const dropTempInput = document.getElementById('ms-drop-temp');
   if (dropTempInput) {
@@ -472,10 +545,11 @@ function markDrop() {
   }
   clearInterval(timerInterval);
   sessionActive=false; dropDone=true;
-  document.getElementById('session-status').textContent='出豆完成，可補填資料';
-  document.getElementById('refill-banner').style.display='block';
+  document.getElementById('session-status').textContent='出豆完成，請補填豆單資料';
+  document.getElementById('card-refill').style.display='block';
   document.getElementById('card-finish').style.display='block';
-  setStep(3); updateDTR();
+  autoGenBatchId();
+  setStep(4); updateDTR();
 }
 
 function addTempRow() {
@@ -534,7 +608,8 @@ function confirmAndDraw() {
   const origin    =document.getElementById('bean-origin').value||'';
   const weightIn  =parseFloat(document.getElementById('weight-in').value)||null;
   const weightOut =parseFloat(document.getElementById('weight-out').value)||null;
-  const chargeTemp=document.getElementById('charge-temp').value;
+  const chargeTemp = document.getElementById('charge-temp-refill')?.value ||
+                     document.getElementById('charge-temp').value;
   const target    =document.getElementById('roast-target').value;
   const notes     =document.getElementById('notes').value;
   const totalTime =events.drop||elapsed();
@@ -543,7 +618,7 @@ function confirmAndDraw() {
   const roast={batchId,beanName,origin,weightIn,weightOut,lossRate,chargeTemp,target,notes,events,ms,temps,powers,damps,rors,rowNotes,totalTime,dtr,date:new Date().toLocaleDateString('zh-TW')};
   allRoasts.unshift(roast);
   saveToStorage();
-  setStep(4);
+  setStep(5);
   switchTab('chart');
   renderCharts(roast);
 }
